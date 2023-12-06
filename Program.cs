@@ -2,21 +2,22 @@
 using System;
 using System.Diagnostics;
 using System.Xml.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Heap
 {
-	public class Heap
+	public class Heap<T> where T : IComparable 
 	{
-		private List<int> list = new List<int>();
+		private List<T> list = new List<T>();
 
 		/// <summary>
 		/// Creates a new heap with the items provided in the <paramref name="initList"/>.
 		/// </summary>
 		/// <param name="initList">Items to add to the new heap.</param>
 		/// <returns>A heap created from the <paramref name="initList"/></returns>
-		public static Heap FromList(List<int> initList)
+		public static Heap<T> FromList(List<T> initList)
 		{
-			Heap heap = new Heap();
+			Heap<T> heap = new Heap<T>();
 
 			heap.list.AddRange(initList);
 			heap.MinHeapify();
@@ -82,12 +83,12 @@ namespace Heap
 
 			// If the left or right child is less than the index, then we return false;
 
-			if (left < list.Count && list[left] < list[index])
+			if (left < list.Count && (list[left].CompareTo(list[index]) < 0))
 			{
 				return false;
 			}
 
-			if (right < list.Count && list[right] < list[index])
+			if (right < list.Count && (list[right].CompareTo(list[index]) < 0))
 			{
 				return false;
 			}
@@ -123,9 +124,8 @@ namespace Heap
 
 			// If the parent is larger than the child, then we swap them.
 
-			if (list[index] < list[parent])
+			if (list[index].CompareTo(list[parent]) < 0)
 			{
-				Log(index, parent);
 				(list[index], list[parent]) = (list[parent], list[index]);
 			}
 
@@ -158,7 +158,7 @@ namespace Heap
 		/// Appends an item to the end of the heap and restores the min-heap property.
 		/// </summary>
 		/// <param name="item">Item to append</param>
-		public void Insert(int item)
+		public void Insert(T item)
 		{
 			list.Add(item);
 
@@ -169,9 +169,9 @@ namespace Heap
 		/// Fetches, removes, and returns the minimum of the heap (or the root, if the min-heap property is maintained)
 		/// </summary>
 		/// <returns>Smallest value in the heap</returns>
-		public int ExtractMinimum()
+		public T ExtractMinimum()
 		{
-			int minimum = PeekMinimum();
+			T minimum = PeekMinimum();
 
 			list = list.GetRange(1, list.Count - 1);
 
@@ -184,7 +184,7 @@ namespace Heap
 		/// Fetches and returns the minimum of the heap (or the root, if the min-heap property is maintained)
 		/// </summary>
 		/// <returns>Smallest value in the heap</returns>
-		public int PeekMinimum()
+		public T PeekMinimum()
 		{
 			return list[0];
 		}
@@ -199,9 +199,45 @@ namespace Heap
 			return "\t" + string.Join(", ", list);
 		}
 	}
+
+	public class TaskHandler
+	{
+		private Heap<Task> taskHeap = new();
+
+		public class Task : IComparable, IComparable<Task>
+		{
+			public int priority = 0;
+			public required string name;
+
+			public int CompareTo(Task? other)
+			{
+				return other.priority - priority;
+			}
+
+			public int CompareTo(object? obj)
+			{
+				return CompareTo(obj as Task);
+			}
+
+			public override string ToString()
+			{
+				return $"{name} ({priority})";
+			}
+		}
+
+		public void AddTask(Task task)
+		{
+			taskHeap.Insert(task);
+		}
+
+		public Task HandleHighestPriorityTask()
+		{
+			return taskHeap.ExtractMinimum();
+		}
+	}
 	public class Program
 	{
-		public static void Main(string[] args)
+		public static void TestHeapBasis()
 		{
 			List<int> values = new List<int>()
 			{
@@ -209,13 +245,26 @@ namespace Heap
 				//12,11,10,9,8,7,6,5,4,3,2,1,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
 			};
 
-			Heap myHeap = Heap.FromList(values);
+			Heap<int> myHeap = Heap<int>.FromList(values);
 
 			Console.WriteLine($"Heap successful: {myHeap.Verify()}");
 			myHeap.PrettyPrint();
 
 			Console.WriteLine($"Heap successful: {myHeap.Verify()}");
 			myHeap.PrettyPrint();
+		}
+
+		public static void Main(string[] args)
+		{
+			TaskHandler handler = new();
+
+			handler.AddTask(new() { name = "Low priority task" });
+			handler.AddTask(new() { name = "High priority task", priority = 1 });
+			handler.AddTask(new() { name = "Super High priority task", priority = 2 });
+
+			Console.WriteLine(handler.HandleHighestPriorityTask());
+			Console.WriteLine(handler.HandleHighestPriorityTask());
+			Console.WriteLine(handler.HandleHighestPriorityTask());
 		}
 	}
 }
